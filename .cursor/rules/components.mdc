@@ -1,0 +1,39 @@
+---
+description: 
+globs: components/**/*.tsx
+alwaysApply: false
+---
+description: Component organization standards
+globs: components/**/*.tsx
+
+# Component Structure
+1. Top-level components:
+   - `/layout`: App-wide layouts
+   - `/ui`: Primitives (buttons, inputs)
+   - `/inventory`: Domain-specific components
+
+2. Component file structure:
+   - Component.tsx (main implementation)
+   - Component.stories.tsx (Storybook)
+   - Component.test.tsx (Jest tests)
+   - index.ts (barrel export)
+
+3. Props convention:
+   - Type with `interface ComponentProps`
+   - Destructure props immediately in function
+   - Default props via destructuring defaults
+
+# Example SearchBar.tsx
+'use client'
+import { useSearchInventory } from '@/hooks/useInventory'
+
+interface SearchBarProps {
+    onSelectItem: (item: InventoryItem) => void
+    placeholder?: string
+}
+export function SearchBar({
+    onSelectItem,
+    placeholder = “Search products…”
+}: SearchBarProps) {
+    // Component logic
+}

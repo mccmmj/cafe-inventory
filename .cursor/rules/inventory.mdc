@@ -1,0 +1,35 @@
+---
+description: 
+globs: **/*.ts,**/*.tsx,**/*.md
+alwaysApply: false
+---
+description: Inventory app domain-specific rules
+globs: **/*.ts,**/*.tsx,**/*.md
+
+# Inventory App Conventions
+## Architecture
+- Maintain 3-layer structure:
+  app/
+    (auth)/          # Authentication routes
+    (dashboard)/     # Protected routes
+    api/             # API routes
+components/          # Reusable UI components
+lib/                 # Services (sheetdb.ts, auth.ts)
+types/               # TypeScript interfaces
+hooks/               # Custom hooks
+
+## Data Flow
+- Fetch data via `SheetDBService` in server components
+- Client-side state: Use React Query (useInventory hook)
+- Real-time updates: Implement refetchInterval=30000
+- Optimistic updates: Use mutation callbacks
+
+## Performance
+- Implement loading skeletons for dashboard widgets
+- Virtualize long lists with `react-virtual`
+- Code-split modals with `React.lazy()`
+
+## Security
+- Validate all sheetDB inputs with Zod
+- Sanitize API responses with `DOMPurify`
+- Implement rate limiting on usage record submissions

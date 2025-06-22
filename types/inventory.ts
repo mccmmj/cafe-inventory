@@ -10,10 +10,12 @@ export interface InventoryItem {
   Primary_Vendor: string
   Cost_Per_Unit: string
   Last_Updated: string
-  Status: 'GOOD' | 'LOW' | 'OUT_OF_STOCK'
+  Status: 'GOOD' | 'MEDIUM' | 'LOW' | 'OUT_OF_STOCK'
   Days_Supply?: number
   Weekly_Usage?: number
   Reorder_Qty?: number
+  Notes?: string
+  Reason?: string
 }
 
 export interface SearchFilters {

@@ -1,0 +1,23 @@
+---
+description: 
+globs: **/*.ts,**/*.tsx
+alwaysApply: false
+---
+description: Next.js optimization rules for inventory app
+globs: **/*.ts,**/*.tsx
+
+# Next.js Best Practices
+- Use App Router structure with `page.tsx` in route directories
+- Client components must have `'use client'` directive at top
+- Directory naming: kebab-case (e.g., `components/auth-form`)
+- Component files: PascalCase (e.g., `SearchBar.tsx`)
+- Prefer named exports: `export function Button()` over `export default`
+- Minimize client components:
+  - Use React Server Components (RSC) for data fetching
+  - Wrap interactive elements in small client components
+  - Use `Suspense` with fallback UI for client components
+- State management:
+  - Use URL search params for shareable state
+  - Implement `nuqs` for URL state management
+  - Use React Query for server-state synchronization
+- Forms: Use React Server Actions for form handling

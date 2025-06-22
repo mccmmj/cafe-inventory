@@ -1,17 +1,13 @@
 'use client'
 
 import { useInventory, useUsageRecords } from '@/hooks/useInventory'
-import { SearchBar } from '@/components/inventory/SearchBar'
 import { InventoryStats } from '@/components/inventory/InventoryStats'
 import { TopUsageChart } from '@/components/inventory/TopUsageChart'
 import { LowStockAlerts } from '@/components/inventory/LowStockAlerts'
-import { InventoryItem } from '@/types/inventory'
-import { useState } from 'react'
 
 export default function DashboardPage() {
   const { data: inventory, isLoading: inventoryLoading } = useInventory()
   const { data: usageRecords, isLoading: usageLoading } = useUsageRecords()
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
 
   if (inventoryLoading || usageLoading) {
     return (
@@ -28,18 +24,10 @@ export default function DashboardPage() {
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Inventory Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Inventory Dashboard</h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Manage your cafe inventory in real-time
         </p>
-      </div>
-
-      {/* Search Bar */}
-      <div className="mb-8">
-        <SearchBar 
-          onSelectItem={setSelectedItem}
-          placeholder="Search for products..."
-        />
       </div>
 
       {/* Stats Overview */}
@@ -53,20 +41,10 @@ export default function DashboardPage() {
       )}
 
       {/* Charts and Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         <TopUsageChart usageRecords={usageRecords || []} />
         {/* Add more charts/widgets as needed */}
       </div>
-
-      {/* Selected Item Details */}
-      {selectedItem && (
-        <div className="mt-8">
-          <ItemDetailsModal 
-            item={selectedItem} 
-            onClose={() => setSelectedItem(null)}
-          />
-        </div>
-      )}
     </div>
   )
 }
