@@ -4,8 +4,13 @@ import { signIn, getProviders } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 
+type Provider = {
+  id: string;
+  name: string;
+}
+
 export default function LoginPage() {
-  const [providers, setProviders] = useState<any>(null)
+  const [providers, setProviders] = useState<Record<string, Provider> | null>(null)
 
   useEffect(() => {
     const setUpProviders = async () => {
@@ -28,7 +33,7 @@ export default function LoginPage() {
         </div>
         
         <div className="mt-8 space-y-4">
-          {providers && Object.values(providers).map((provider: any) => (
+          {providers && Object.values(providers).map((provider) => (
             <Button
               key={provider.name}
               onClick={() => signIn(provider.id, { callbackUrl: '/dashboard' })}

@@ -8,18 +8,6 @@ import { InventoryItem } from '@/types/inventory'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/Select'
 
-const schema = yup.object().shape({
-  Product_Name: yup.string().required('Product name is required'),
-  Category: yup.string().required('Category is required'),
-  Current_Stock: yup.number().min(0).required(),
-  Min_Level: yup.number().min(0).required('Minimum level is required'),
-  Max_Level: yup.number().min(0).required('Maximum level is required'),
-  Unit_Size: yup.string().required('Unit size is required'),
-  Storage_Location: yup.string().required('Storage location is required'),
-  Primary_Vendor: yup.string(),
-  Cost_Per_Unit: yup.string().required('Cost per unit is required'),
-})
-
 interface InventoryFormValues {
   Product_Name: string;
   Category: string;
@@ -31,6 +19,18 @@ interface InventoryFormValues {
   Primary_Vendor?: string;
   Cost_Per_Unit: string;
 }
+
+const schema: yup.ObjectSchema<InventoryFormValues> = yup.object().shape({
+  Product_Name: yup.string().required('Product name is required'),
+  Category: yup.string().required('Category is required'),
+  Current_Stock: yup.number().min(0).required(),
+  Min_Level: yup.number().min(0).required('Minimum level is required'),
+  Max_Level: yup.number().min(0).required('Maximum level is required'),
+  Unit_Size: yup.string().required('Unit size is required'),
+  Storage_Location: yup.string().required('Storage location is required'),
+  Primary_Vendor: yup.string().optional(),
+  Cost_Per_Unit: yup.string().required('Cost per unit is required'),
+})
 
 interface InventoryFormProps {
   initialData?: InventoryItem | null
@@ -50,7 +50,7 @@ type FieldConfig = {
 
 export function InventoryForm({ initialData, onSubmit, onCancel, isSubmitting, isEditMode }: InventoryFormProps) {
   const { control, handleSubmit, formState: { errors } } = useForm<InventoryFormValues>({
-    resolver: yupResolver(schema) as any,
+    resolver: yupResolver(schema),
     defaultValues: {
       Product_Name: initialData?.Product_Name || '',
       Category: initialData?.Category || '',
@@ -59,7 +59,7 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isSubmitting, i
       Max_Level: initialData?.Max_Level || 100,
       Unit_Size: initialData?.Unit_Size || '',
       Storage_Location: initialData?.Storage_Location || '',
-      Primary_Vendor: initialData?.Primary_Vendor || '',
+      Primary_Vendor: initialData?.Primary_Vendor,
       Cost_Per_Unit: initialData?.Cost_Per_Unit || '',
     },
   })

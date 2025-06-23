@@ -4,7 +4,7 @@ import React from 'react';
 import { InventoryItem } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from './StatusBadge';
-import { MoreVertical, Diff, Pencil, Trash2 } from 'lucide-react';
+import { Diff, Pencil, Trash2 } from 'lucide-react';
 
 interface InventoryCardGridProps {
   inventory: InventoryItem[];

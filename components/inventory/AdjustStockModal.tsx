@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
@@ -28,12 +28,10 @@ interface AdjustStockModalProps {
 }
 
 export function AdjustStockModal({ isOpen, onClose, item, onSubmit, isSubmitting }: AdjustStockModalProps) {
-  const { control, handleSubmit, watch, formState: { errors } } = useForm({
+  const { control, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: { adjustmentType: 'Record Usage', quantity: 1, notes: '' },
   })
-
-  const adjustmentType = watch('adjustmentType');
 
   const handleFormSubmit = (data: {
     adjustmentType: 'Record Usage' | 'Receive Stock';

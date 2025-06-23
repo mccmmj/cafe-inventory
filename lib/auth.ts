@@ -13,11 +13,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     error: "/login",
   },
   callbacks: {
-    async session({ session, token }) {
+    async session({ session }) {
       return session
-    },
-    async jwt({ token, account }) {
-      return token
     },
     async authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user

@@ -1,4 +1,6 @@
-export function downloadAsCsv(data: any[], filename: string): void {
+type CsvRow = Record<string, string | number | boolean | null | undefined>;
+
+export function downloadAsCsv(data: CsvRow[], filename: string): void {
   if (!data || data.length === 0) {
     console.error("No data available to download.");
     return;
@@ -12,7 +14,7 @@ export function downloadAsCsv(data: any[], filename: string): void {
     headers.join(','), // header row
     ...data.map(row => 
       headers.map(fieldName => {
-        let field = row[fieldName];
+        const field = row[fieldName];
         // Handle null/undefined and escape commas and quotes
         if (field === null || field === undefined) {
           return '';

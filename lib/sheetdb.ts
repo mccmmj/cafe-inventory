@@ -14,7 +14,7 @@ const sheetDBClient = axios.create({
 })
 
 // Helper to log actions to the Activity_Log sheet
-async function logActivity(logData: Record<string, any>) {
+async function logActivity(logData: Record<string, string | number | undefined | null>) {
   try {
     await sheetDBClient.post('/', { data: { ...logData, Timestamp: new Date().toISOString() } }, { params: { sheet: 'Activity_Log' } });
   } catch (error) {
@@ -28,7 +28,7 @@ export class SheetDBService {
   static async getInventory(): Promise<InventoryItem[]> {
     try {
       const response = await sheetDBClient.get('/', { params: { sheet: 'Master_Inventory' } })
-      return response.data.map((item: any) => {
+      return response.data.map((item: Record<string, string>) => {
         const currentStock = parseInt(item.Current_Stock, 10) || 0;
         const minLevel = parseInt(item.Min_Level, 10) || 0;
 
@@ -81,13 +81,17 @@ export class SheetDBService {
       // Fetch all logs and filter for usage records
       const response = await sheetDBClient.get('/', { params: { sheet: 'Activity_Log' } })
       const allLogs = response.data || [];
-      const usageLogs = allLogs.filter((log: any) => 
+      const usageLogs = allLogs.filter((log: Record<string, string>) => 
         log.Action_Type === 'UPDATE_STOCK' && log.Reason === 'Record Usage'
       );
-      return usageLogs.map((record: any) => ({
-        ...record,
-        Quantity_Used: parseInt(record.Details?.match(/-(\d+)/)?.[1], 10) || 0,
-      }))
+      
+      return usageLogs.map((record: Record<string, string>) => {
+        const match = (record.Details || '').match(/-(\d+)/);
+        return {
+          ...record,
+          Quantity_Used: match && match[1] ? parseInt(match[1], 10) : 0,
+        } as UsageRecord;
+      });
     } catch (error) {
       console.error('Error fetching usage records:', error)
       throw new Error('Failed to fetch usage records')
@@ -220,7 +224,7 @@ export class SheetDBService {
     }
   }
 
-  static async getFullActivityLog(): Promise<any[]> {
+  static async getFullActivityLog(): Promise<Record<string, string>[]> {
     try {
       const response = await sheetDBClient.get('/', { params: { sheet: 'Activity_Log' } });
       return response.data;

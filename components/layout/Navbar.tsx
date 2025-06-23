@@ -1,15 +1,10 @@
 'use client'
 
 import { signOut } from 'next-auth/react'
-import { User } from 'next-auth'
 import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 
-interface NavbarProps {
-  user: User
-}
-
-export function Navbar({ user }: NavbarProps) {
+export function Navbar() {
   const { data: session } = useSession()
 
   return (

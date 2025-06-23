@@ -18,9 +18,6 @@ const StatCard = ({ title, value, icon, color }: { title: string; value: string 
 );
 
 export function InventoryStats({ inventory }: InventoryStatsProps) {
-  const totalItems = inventory.length
-  const lowStockItems = inventory.filter(item => item.Current_Stock <= item.Min_Level).length
-  const outOfStockItems = inventory.filter(item => item.Current_Stock === 0).length
   const totalValue = inventory.reduce((sum, item) => {
     const costString = (item.Cost_Per_Unit || '').toString().replace(/[^0-9.]/g, '')
     const cost = parseFloat(costString) || 0
