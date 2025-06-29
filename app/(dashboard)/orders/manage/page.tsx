@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { SheetDBService } from "@/lib/sheetdb";
-import { Order } from "@/types/orders";
+import { Order, OrderItem } from "@/types/orders";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/Modal";
 import { useSession } from "next-auth/react";
@@ -22,10 +22,9 @@ export default function ManageOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<string>("submitted");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showFulfillmentModal, setShowFulfillmentModal] = useState(false);
-  const [fulfillmentItems, setFulfillmentItems] = useState<any[]>([]);
-  const [receivedItems, setReceivedItems] = useState<any[]>([]);
+  const [fulfillmentItems, setFulfillmentItems] = useState<(OrderItem & { receivedQty: number, costPerUnit: number, purchaseCost: number })[]>([]);
+  const [receivedItems, setReceivedItems] = useState<(OrderItem & { receivedQty: number })[]>([]);
 
   useEffect(() => {
     async function fetchOrders() {
@@ -38,8 +37,8 @@ export default function ManageOrdersPage() {
           allOrders = await SheetDBService.getOrders();
         }
         setOrders(allOrders);
-      } catch (err) {
-        setError("Failed to fetch orders.");
+      } catch (_err) {
+        console.error("Failed to fetch orders.", _err);
       } finally {
         setLoading(false);
       }
@@ -64,25 +63,25 @@ export default function ManageOrdersPage() {
         await SheetDBService.updateOrder(order.id, {
           status: newStatus,
           inProcess: newStatus === "in_process",
-          rejected: newStatus === "rejected",
+          rejected: (newStatus as string) === "rejected",
           updatedAt: new Date().toISOString(),
           updatedBy: userName,
         });
         setOrders((prev) =>
           prev.map((o) =>
             o.id === order.id
-              ? { ...o, status: newStatus, inProcess: newStatus === "in_process", rejected: newStatus === "rejected" }
+              ? { ...o, status: newStatus, inProcess: newStatus === "in_process", rejected: (newStatus as string) === "rejected" }
               : o
           )
         );
         setSelectedOrder((prev) =>
           prev && prev.id === order.id
-            ? { ...prev, status: newStatus, inProcess: newStatus === "in_process", rejected: newStatus === "rejected" }
+            ? { ...prev, status: newStatus, inProcess: newStatus === "in_process", rejected: (newStatus as string) === "rejected" }
             : prev
         );
       }
-    } catch (err) {
-      setError("Failed to update order status.");
+    } catch (_err) {
+      console.error("Failed to update order status.", _err);
     } finally {
       setActionLoading(false);
     }
@@ -95,13 +94,16 @@ export default function ManageOrdersPage() {
     } catch {
       received = order.items.map(item => ({ ...item, receivedQty: 0 }));
     }
-    setFulfillmentItems(order.items.map((item, idx) => ({
+    setFulfillmentItems(order.items.map((item: OrderItem) => ({
       ...item,
-      receivedQty: received[idx]?.receivedQty || 0,
-      costPerUnit: item.pricePerUnit,
-      purchaseCost: item.pricePerUnit * item.quantity,
+      receivedQty: received.length ? received[0]?.receivedQty || 0 : 0,
+      costPerUnit: Number(item.pricePerUnit),
+      purchaseCost: Number(item.pricePerUnit) * Number(item.quantity),
     })));
-    setReceivedItems(received);
+    setReceivedItems(received.map((item: OrderItem & { receivedQty: number }) => ({
+      ...item,
+      receivedQty: item.receivedQty || 0,
+    })));
     setShowFulfillmentModal(true);
   }
 
@@ -111,8 +113,7 @@ export default function ManageOrdersPage() {
       const userName = session?.user?.name || session?.user?.email || "Unknown User";
       let allFulfilled = true;
       const inventory = await SheetDBService.getInventory();
-      const newReceivedItems = fulfillmentItems.map((item, idx) => {
-        const prevReceived = receivedItems[idx]?.receivedQty || 0;
+      const newReceivedItems = fulfillmentItems.map((item) => {
         const newReceived = Number(item.receivedQty);
         if (newReceived < item.quantity) allFulfilled = false;
         return { ...item, receivedQty: newReceived };
@@ -124,8 +125,8 @@ export default function ManageOrdersPage() {
             fullItem,
             {
               Current_Stock: fullItem.Current_Stock + Number(item.receivedQty),
-              Cost_Per_Unit: item.costPerUnit,
-              Purchase_Cost: item.purchaseCost,
+              Cost_Per_Unit: String(item.costPerUnit),
+              Purchase_Cost: String(item.purchaseCost),
               Last_Updated: new Date().toISOString(),
             }
           );
@@ -146,8 +147,8 @@ export default function ManageOrdersPage() {
       }
       setShowFulfillmentModal(false);
       setSelectedOrder(null);
-    } catch (err) {
-      setError("Failed to fulfill order.");
+    } catch (_err) {
+      console.error("Failed to fulfill order.", _err);
     } finally {
       setActionLoading(false);
     }
@@ -169,8 +170,6 @@ export default function ManageOrdersPage() {
       </div>
       {loading ? (
         <div>Loading orders...</div>
-      ) : error ? (
-        <div className="text-red-600">{error}</div>
       ) : (
         <table className="w-full mb-4 text-sm">
           <thead>
@@ -306,9 +305,9 @@ export default function ManageOrdersPage() {
                   <td className="text-center">
                     <input
                       type="number"
-                      min={receivedItems[idx]?.receivedQty || 0}
-                      max={item.quantity}
-                      value={item.receivedQty}
+                      min={String(receivedItems[idx]?.receivedQty ?? 0)}
+                      max={String(item.quantity)}
+                      value={String(item.receivedQty)}
                       onChange={e => setFulfillmentItems(items => items.map((it, i) => i === idx ? { ...it, receivedQty: Number(e.target.value) } : it))}
                       className="w-16 text-center border rounded"
                     />
@@ -317,20 +316,18 @@ export default function ManageOrdersPage() {
                   <td className="text-right">
                     <input
                       type="number"
-                      min={0}
-                      step="0.01"
-                      value={item.costPerUnit}
-                      onChange={e => setFulfillmentItems(items => items.map((it, i) => i === idx ? { ...it, costPerUnit: e.target.value } : it))}
+                      min={"0"}
+                      value={String(item.costPerUnit)}
+                      onChange={e => setFulfillmentItems(items => items.map((it, i) => i === idx ? { ...it, costPerUnit: Number(e.target.value) } : it))}
                       className="w-20 text-right border rounded"
                     />
                   </td>
                   <td className="text-right">
                     <input
                       type="number"
-                      min={0}
-                      step="0.01"
-                      value={item.purchaseCost}
-                      onChange={e => setFulfillmentItems(items => items.map((it, i) => i === idx ? { ...it, purchaseCost: e.target.value } : it))}
+                      min={"0"}
+                      value={String(item.purchaseCost)}
+                      onChange={e => setFulfillmentItems(items => items.map((it, i) => i === idx ? { ...it, purchaseCost: Number(e.target.value) } : it))}
                       className="w-24 text-right border rounded"
                     />
                   </td>

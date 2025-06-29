@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { InventoryItem } from "@/types/inventory";
-import { Vendor, OrderItem } from "@/types/orders";
+import { OrderItem } from "@/types/orders";
 import { Button } from "@/components/ui/button";
 import { SheetDBService } from "@/lib/sheetdb";
-import { Trash2, Plus, Minus } from "lucide-react";
+import { Plus, Minus } from "lucide-react";
 import { Modal } from '@/components/ui/Modal';
 import { useSession } from "next-auth/react";
 
@@ -95,13 +95,6 @@ export default function OrdersPage() {
     }));
   }
 
-  function handleRemoveItem(vendor: string, productId: string) {
-    setOrders((prev) => ({
-      ...prev,
-      [vendor]: prev[vendor].filter((item) => item.productId !== productId),
-    }));
-  }
-
   function handleVendorChange(vendor: string, productId: string, newVendor: string) {
     setOrders((prev) => ({
       ...prev,
@@ -162,8 +155,8 @@ export default function OrdersPage() {
   function handleAddModalConfirm() {
     if (!addModalVendor) return;
     const itemsToAdd = Object.entries(addModalSelections)
-      .filter(([_, v]) => v.selected)
-      .map(([productId, v]) => {
+      .filter(([, value]) => value.selected)
+      .map(([productId]) => {
         const item = inventory.find(i => i.Product_ID === productId);
         if (!item) return null;
         return { ...toOrderItem(item, addModalVendor), selected: true };
@@ -173,7 +166,7 @@ export default function OrdersPage() {
       ...prev,
       [addModalVendor]: [
         ...prev[addModalVendor],
-        ...itemsToAdd.map((item, i) => ({ ...item, quantity: addModalSelections[item.productId].qty })),
+        ...itemsToAdd.map((item) => ({ ...item, quantity: addModalSelections[item.productId].qty })),
       ],
     }));
     closeAddModal();
@@ -205,8 +198,7 @@ export default function OrdersPage() {
       await SheetDBService.createOrder(order);
       setReviewOrderSuccess(true);
       setShowReviewModal(false);
-      // Optionally, clear the order or update UI
-    } catch (err: any) {
+    } catch {
       setReviewOrderError('Failed to submit order.');
     } finally {
       setReviewOrderSubmitting(false);
@@ -233,8 +225,6 @@ export default function OrdersPage() {
         vendors.map((vendor) => {
           const order = orders[vendor] || [];
           const subtotal = getOrderSubtotal(order);
-          const moq = 0; // TODO: Add MOQ logic if needed
-          const moqMet = true; // TODO: Add MOQ logic if needed
           return (
             <section
               key={vendor}
@@ -323,7 +313,6 @@ export default function OrdersPage() {
               {/* Order Summary & Actions */}
               <div className="flex items-center gap-4 mb-4">
                 <span>Subtotal: ${subtotal.toFixed(2)}</span>
-                {/* MOQ logic can be added here */}
                 <Button variant="outline" onClick={() => openAddModal(vendor)}>Add More Items</Button>
                 <Button variant="primary" onClick={() => setShowReviewModal(true)}>Review & Submit Order</Button>
               </div>

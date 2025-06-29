@@ -324,13 +324,13 @@ export class SheetDBService {
     }
   }
 
-  static async getOrders(filter?: Partial<Order>): Promise<Order[]> {
+  static async getOrders(): Promise<Order[]> {
     try {
       const response = await sheetDBClient.get('/', { params: { sheet: 'Orders' } });
       return response.data
-        .map((row: any) => ({
+        .map((row: Record<string, unknown>) => ({
           ...row,
-          items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items,
+          items: typeof row.items === 'string' ? JSON.parse(row.items as string) : row.items,
           inProcess: String(row.inProcess).toUpperCase() === 'TRUE',
           rejected: String(row.rejected).toUpperCase() === 'TRUE',
           moqMet: String(row.moqMet).toUpperCase() === 'TRUE',
@@ -344,6 +344,7 @@ export class SheetDBService {
   static async moveOrderToHistory(order: Order): Promise<void> {
     try {
       // Copy order to Order_History, removing receivedItems
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { receivedItems, ...orderData } = order;
       await sheetDBClient.post('/', { data: orderData }, { params: { sheet: 'Order_History' } });
     } catch (error) {
@@ -364,9 +365,9 @@ export class SheetDBService {
   static async getOrderHistory(): Promise<Order[]> {
     try {
       const response = await sheetDBClient.get('/', { params: { sheet: 'Order_History' } });
-      return response.data.map((row: any) => ({
+      return response.data.map((row: Record<string, unknown>) => ({
         ...row,
-        items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items,
+        items: typeof row.items === 'string' ? JSON.parse(row.items as string) : row.items,
         inProcess: String(row.inProcess).toUpperCase() === 'TRUE',
         rejected: String(row.rejected).toUpperCase() === 'TRUE',
         moqMet: String(row.moqMet).toUpperCase() === 'TRUE',

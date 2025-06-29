@@ -34,7 +34,13 @@ export function DataExportCard() {
     setIsExportingInventory(true)
     try {
       const inventory = await SheetDBService.getRawInventory()
-      downloadAsCsv(inventory, 'inventory_export')
+      downloadAsCsv(
+        inventory.map(row => ({
+          ...row,
+          vendors: Array.isArray(row.vendors) ? row.vendors.join(', ') : row.vendors
+        })),
+        'inventory_export'
+      )
     } catch (error) {
       console.error('Failed to export inventory:', error)
     } finally {

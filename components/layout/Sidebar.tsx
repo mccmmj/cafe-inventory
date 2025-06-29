@@ -9,13 +9,6 @@ export function Sidebar() {
   const pathname = usePathname()
   const [ordersOpen, setOrdersOpen] = useState(false)
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
-    { name: 'Inventory', href: '/inventory', icon: Package },
-    { name: 'Vendors', href: '/vendors', icon: Store },
-    { name: 'Settings', href: '/settings', icon: Settings },
-  ]
-
   return (
     <div className="hidden md:flex md:flex-shrink-0">
       <div className="flex flex-col w-64">

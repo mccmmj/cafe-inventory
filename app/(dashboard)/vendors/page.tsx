@@ -14,7 +14,6 @@ export default function VendorsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState<{ open: boolean; vendor?: Vendor }>({ open: false });
   const [deleteTarget, setDeleteTarget] = useState<Vendor | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   async function refreshVendors() {
     setLoading(true);
@@ -31,7 +30,7 @@ export default function VendorsPage() {
       setShowAddModal(false);
       await refreshVendors();
     } catch (e) {
-      setError('Failed to add vendor.');
+      console.error('Failed to add vendor.', e);
     }
   }
 
@@ -41,7 +40,7 @@ export default function VendorsPage() {
       setShowEditModal({ open: false });
       await refreshVendors();
     } catch (e) {
-      setError('Failed to update vendor.');
+      console.error('Failed to update vendor.', e);
     }
   }
 
@@ -52,7 +51,7 @@ export default function VendorsPage() {
       setDeleteTarget(null);
       await refreshVendors();
     } catch (e) {
-      setError('Failed to delete vendor.');
+      console.error('Failed to delete vendor.', e);
     }
   }
 
@@ -60,7 +59,6 @@ export default function VendorsPage() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Vendors</h1>
       <Button variant="primary" onClick={() => setShowAddModal(true)} className="mb-4">Add Vendor</Button>
-      {error && <div className="text-red-600 mb-2">{error}</div>}
       {loading ? (
         <div>Loading vendors...</div>
       ) : (

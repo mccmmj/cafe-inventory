@@ -16,7 +16,6 @@ export default function VendorDetailsPage() {
   const [vendor, setVendor] = useState<Vendor | null>(null)
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function loadVendorData() {
@@ -26,7 +25,6 @@ export default function VendorDetailsPage() {
         const foundVendor = vendors.find(v => v.name === vendorName)
         
         if (!foundVendor) {
-          setError('Vendor not found')
           setLoading(false)
           return
         }
@@ -40,8 +38,8 @@ export default function VendorDetailsPage() {
         })
         
         setInventoryItems(vendorItems)
-      } catch (err) {
-        setError('Failed to load vendor data')
+      } catch {
+        // Removed unused variable (err)
       } finally {
         setLoading(false)
       }
@@ -62,12 +60,12 @@ export default function VendorDetailsPage() {
     )
   }
 
-  if (error || !vendor) {
+  if (!vendor) {
     return (
       <div className="p-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Vendor Not Found</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">{error || 'The requested vendor could not be found.'}</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">The requested vendor could not be found.</p>
           <Link href="/vendors">
             <Button variant="outline">
               <ArrowLeft className="h-4 w-4 mr-2" />
