@@ -34,8 +34,8 @@ export function useUpdateInventoryItem() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: ({ originalItem, updates }: { originalItem: InventoryItem; updates: Partial<InventoryItem> }) =>
-      SheetDBService.updateInventoryItem(originalItem, updates),
+    mutationFn: ({ originalItem, updates, staffMember }: { originalItem: InventoryItem; updates: Partial<InventoryItem>; staffMember?: string }) =>
+      SheetDBService.updateInventoryItem(originalItem, updates, staffMember),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] })
     },
@@ -46,7 +46,7 @@ export function useCreateInventoryItem() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (item: Partial<InventoryItem>) => SheetDBService.createInventoryItem(item),
+    mutationFn: ({ item, staffMember }: { item: Partial<InventoryItem>; staffMember?: string }) => SheetDBService.createInventoryItem(item, staffMember),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] })
     },
@@ -62,7 +62,8 @@ export function useAdjustStock() {
       adjustment: number;
       reason: 'Record Usage' | 'Receive Stock';
       notes: string;
-    }) => SheetDBService.adjustStock(data.item, data.adjustment, data.reason, data.notes),
+      staffMember?: string;
+    }) => SheetDBService.adjustStock(data.item, data.adjustment, data.reason, data.notes, data.staffMember),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] })
       queryClient.invalidateQueries({ queryKey: ['usage-records'] }) // Also refresh dashboard
@@ -74,8 +75,8 @@ export function useDeleteInventoryItem() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: { item: InventoryItem; reason: string; notes: string }) =>
-      SheetDBService.deleteInventoryItem(data.item, data.reason, data.notes),
+    mutationFn: (data: { item: InventoryItem; reason: string; notes: string; staffMember?: string }) =>
+      SheetDBService.deleteInventoryItem(data.item, data.reason, data.notes, data.staffMember),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] })
     },

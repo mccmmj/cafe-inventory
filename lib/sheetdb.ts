@@ -1,5 +1,7 @@
 import axios from 'axios'
 import { InventoryItem, UsageRecord } from '@/types/inventory'
+import { Vendor } from '@/types/vendor'
+import { Order } from '@/types/orders'
 
 const SHEETDB_BASE_URL = 'https://sheetdb.io/api/v1'
 const API_ID = process.env.NEXT_PUBLIC_SHEETDB_API_ID
@@ -14,9 +16,9 @@ const sheetDBClient = axios.create({
 })
 
 // Helper to log actions to the Activity_Log sheet
-async function logActivity(logData: Record<string, string | number | undefined | null>) {
+async function logActivity(logData: Record<string, string | number | undefined | null>, staffMember?: string) {
   try {
-    await sheetDBClient.post('/', { data: { ...logData, Timestamp: new Date().toISOString() } }, { params: { sheet: 'Activity_Log' } });
+    await sheetDBClient.post('/', { data: { ...logData, Staff_Member: staffMember, Timestamp: new Date().toISOString() } }, { params: { sheet: 'Activity_Log' } });
   } catch (error) {
     console.error('Failed to log activity:', error);
     // Don't re-throw, as the primary action might have succeeded
@@ -44,12 +46,17 @@ export class SheetDBService {
           status = 'GOOD';
         }
 
+        // Parse vendors column (comma or semicolon separated)
+        const vendorRaw = item.Primary_Vendor || '';
+        const vendors = vendorRaw.split(/[,;]/).map(v => v.trim()).filter(Boolean);
+
         return {
           ...item,
           Current_Stock: currentStock,
           Min_Level: minLevel,
           Max_Level: parseInt(item.Max_Level, 10) || 0,
           Status: status,
+          vendors,
         }
       })
     } catch (error) {
@@ -99,7 +106,7 @@ export class SheetDBService {
   }
 
   // Create inventory item and log the action
-  static async createInventoryItem(item: Partial<InventoryItem>): Promise<void> {
+  static async createInventoryItem(item: Partial<InventoryItem>, staffMember?: string): Promise<void> {
     try {
       await sheetDBClient.post('/', { data: item }, { params: { sheet: 'Master_Inventory' } });
       await logActivity({
@@ -107,8 +114,7 @@ export class SheetDBService {
         Product_Name: item.Product_Name,
         Action_Type: 'CREATE',
         Details: `Item created with stock of ${item.Current_Stock}`,
-        Staff_Member: 'System', // Replace with actual user later
-      });
+      }, staffMember);
     } catch (error) {
       console.error('Error creating inventory item:', error);
       throw new Error('Failed to create inventory item');
@@ -116,19 +122,13 @@ export class SheetDBService {
   }
 
   // A new dedicated function for stock adjustments
-  static async adjustStock(
-    item: InventoryItem,
-    adjustment: number,
-    reason: 'Record Usage' | 'Receive Stock',
-    notes: string
-  ): Promise<void> {
+  static async adjustStock(item: InventoryItem, adjustment: number, reason: 'Record Usage' | 'Receive Stock', notes: string, staffMember?: string): Promise<void> {
     const newStock = item.Current_Stock + adjustment;
     try {
-      // The updateInventoryItem function will now handle all logging,
-      // including specific stock adjustments.
       await this.updateInventoryItem(
         item,
-        { Current_Stock: newStock, Notes: notes, Reason: reason }
+        { Current_Stock: newStock, Notes: notes, Reason: reason },
+        staffMember
       );
     } catch (error) {
       console.error('Error adjusting stock:', error);
@@ -137,27 +137,21 @@ export class SheetDBService {
   }
   
   // Update inventory item and log the changes
-  static async updateInventoryItem(originalItem: InventoryItem, updates: Partial<InventoryItem>): Promise<void> {
+  static async updateInventoryItem(originalItem: InventoryItem, updates: Partial<InventoryItem>, staffMember?: string): Promise<void> {
     try {
-      // Separate logging fields from actual data updates
       const { Notes, Reason, ...itemUpdates } = updates;
-      
       if (Object.keys(itemUpdates).length > 0) {
         await sheetDBClient.patch(`/Product_ID/${originalItem.Product_ID}`, { data: itemUpdates }, { params: { sheet: 'Master_Inventory' } });
       }
-
       let logDetails = '';
       let actionType = 'UPDATE_ITEM';
-      
-      // Check if this is a stock adjustment
       if ('Current_Stock' in updates && Reason) {
-          actionType = 'UPDATE_STOCK';
-          const oldStock = originalItem.Current_Stock;
-          const newStock = updates.Current_Stock!; // Add non-null assertion
-          const adjustment = newStock - oldStock;
-          logDetails = `Stock changed from ${oldStock} to ${newStock} (${adjustment > 0 ? '+' : ''}${adjustment})`;
+        actionType = 'UPDATE_STOCK';
+        const oldStock = originalItem.Current_Stock;
+        const newStock = updates.Current_Stock!;
+        const adjustment = newStock - oldStock;
+        logDetails = `Stock changed from ${oldStock} to ${newStock} (${adjustment > 0 ? '+' : ''}${adjustment})`;
       } else {
-        // Generate a detailed log for metadata changes
         logDetails = Object.keys(itemUpdates)
           .filter(key => key !== 'Product_ID')
           .map(key => {
@@ -172,7 +166,6 @@ export class SheetDBService {
           .filter(Boolean)
           .join(', ');
       }
-
       if (logDetails) {
         await logActivity({
           Product_ID: originalItem.Product_ID,
@@ -181,8 +174,7 @@ export class SheetDBService {
           Reason: Reason,
           Details: logDetails,
           Notes: Notes,
-          Staff_Member: 'System', 
-        });
+        }, staffMember);
       }
     } catch (error) {
       console.error('Error updating inventory item:', error);
@@ -191,9 +183,8 @@ export class SheetDBService {
   }
 
   // Delete inventory item and log the action
-  static async deleteInventoryItem(item: InventoryItem, reason: string, notes: string): Promise<void> {
+  static async deleteInventoryItem(item: InventoryItem, reason: string, notes: string, staffMember?: string): Promise<void> {
     try {
-      // 1. Log the deletion first, so we have a record of it
       await logActivity({
         Product_ID: item.Product_ID,
         Product_Name: item.Product_Name,
@@ -201,10 +192,7 @@ export class SheetDBService {
         Reason: reason,
         Details: `Item deleted from inventory`,
         Notes: notes,
-        Staff_Member: 'System', // Replace with actual user later
-      });
-      
-      // 2. Then, delete the item
+      }, staffMember);
       await sheetDBClient.delete(`/Product_ID/${item.Product_ID}`, { params: { sheet: 'Master_Inventory' } });
     } catch (error) {
       console.error('Error deleting inventory item:', error);
@@ -268,6 +256,124 @@ export class SheetDBService {
     } catch (error) {
       console.error('Error updating user preferences:', error);
       throw new Error('Failed to update user preferences');
+    }
+  }
+
+  // ---- Vendor CRUD ----
+  static async getVendors(): Promise<Vendor[]> {
+    try {
+      const response = await sheetDBClient.get('/', { params: { sheet: 'Vendors' } });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
+      throw new Error('Failed to fetch vendors');
+    }
+  }
+
+  static async createVendor(vendor: Vendor): Promise<void> {
+    try {
+      await sheetDBClient.post('/', { data: vendor }, { params: { sheet: 'Vendors' } });
+    } catch (error) {
+      console.error('Error creating vendor:', error);
+      throw new Error('Failed to create vendor');
+    }
+  }
+
+  static async updateVendor(name: string, vendor: Partial<Vendor>): Promise<void> {
+    try {
+      await sheetDBClient.patch(`/name/${encodeURIComponent(name)}`, { data: vendor }, { params: { sheet: 'Vendors' } });
+    } catch (error) {
+      console.error('Error updating vendor:', error);
+      throw new Error('Failed to update vendor');
+    }
+  }
+
+  static async deleteVendor(name: string): Promise<void> {
+    try {
+      await sheetDBClient.delete(`/name/${encodeURIComponent(name)}`, { params: { sheet: 'Vendors' } });
+    } catch (error) {
+      console.error('Error deleting vendor:', error);
+      throw new Error('Failed to delete vendor');
+    }
+  }
+
+  // Orders CRUD
+  static async createOrder(order: Order): Promise<void> {
+    try {
+      const orderData = {
+        ...order,
+        items: JSON.stringify(order.items),
+        inProcess: order.inProcess ? 'TRUE' : 'FALSE',
+        rejected: order.rejected ? 'TRUE' : 'FALSE',
+        moqMet: order.moqMet ? 'TRUE' : 'FALSE',
+      };
+      await sheetDBClient.post('/', { data: orderData }, { params: { sheet: 'Orders' } });
+    } catch (error) {
+      console.error('Error creating order:', error);
+      throw new Error('Failed to create order');
+    }
+  }
+
+  static async updateOrder(id: string, updates: Partial<Order>): Promise<void> {
+    try {
+      // Patch the order by id in Orders sheet
+      await sheetDBClient.patch(`/id/${id}`, { data: updates }, { params: { sheet: 'Orders' } });
+    } catch (error) {
+      console.error('Error updating order:', error);
+      throw new Error('Failed to update order');
+    }
+  }
+
+  static async getOrders(filter?: Partial<Order>): Promise<Order[]> {
+    try {
+      const response = await sheetDBClient.get('/', { params: { sheet: 'Orders' } });
+      return response.data
+        .map((row: any) => ({
+          ...row,
+          items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items,
+          inProcess: String(row.inProcess).toUpperCase() === 'TRUE',
+          rejected: String(row.rejected).toUpperCase() === 'TRUE',
+          moqMet: String(row.moqMet).toUpperCase() === 'TRUE',
+        }));
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      throw new Error('Failed to fetch orders');
+    }
+  }
+
+  static async moveOrderToHistory(order: Order): Promise<void> {
+    try {
+      // Copy order to Order_History, removing receivedItems
+      const { receivedItems, ...orderData } = order;
+      await sheetDBClient.post('/', { data: orderData }, { params: { sheet: 'Order_History' } });
+    } catch (error) {
+      console.error('Error moving order to history:', error);
+      throw new Error('Failed to move order to history');
+    }
+  }
+
+  static async deleteOrder(id: string): Promise<void> {
+    try {
+      await sheetDBClient.delete(`/id/${id}`, { params: { sheet: 'Orders' } });
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      throw new Error('Failed to delete order');
+    }
+  }
+
+  static async getOrderHistory(): Promise<Order[]> {
+    try {
+      const response = await sheetDBClient.get('/', { params: { sheet: 'Order_History' } });
+      return response.data.map((row: any) => ({
+        ...row,
+        items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items,
+        inProcess: String(row.inProcess).toUpperCase() === 'TRUE',
+        rejected: String(row.rejected).toUpperCase() === 'TRUE',
+        moqMet: String(row.moqMet).toUpperCase() === 'TRUE',
+      }));
+    } catch (error) {
+      console.error('Error fetching order history:', error);
+      throw new Error('Failed to fetch order history');
     }
   }
 }

@@ -16,8 +16,9 @@ export function LowStockAlerts({ items }: LowStockAlertsProps) {
       </h3>
       <div className="space-y-3 max-h-60 overflow-y-auto">
         {lowStockItems.length > 0 ? (
-          lowStockItems.map(item => (
-            <div key={item.Product_ID} className="flex justify-between items-center p-2 rounded bg-gray-50 dark:bg-gray-700">
+          lowStockItems.map((item, idx) => (
+            <div key={item.Product_ID && item.Product_ID !== '#NAME?' ? item.Product_ID : `lowstock-${idx}`}
+              className="flex justify-between items-center p-2 rounded bg-gray-50 dark:bg-gray-700">
               <div>
                 <p className="font-medium text-gray-900 dark:text-white">{item.Product_Name}</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">

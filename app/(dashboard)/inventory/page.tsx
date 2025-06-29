@@ -18,6 +18,7 @@ import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { AdjustStockModal } from '@/components/inventory/AdjustStockModal'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
+import { useSession } from "next-auth/react";
 
 type View = 'list' | 'grid'
 
@@ -27,6 +28,7 @@ export default function InventoryPage() {
   const updateItemMutation = useUpdateInventoryItem()
   const deleteItemMutation = useDeleteInventoryItem()
   const adjustStockMutation = useAdjustStock()
+  const { data: session } = useSession();
 
   const [view, setView] = useState<View>('list')
   const [searchTerm, setSearchTerm] = useState('')
@@ -90,20 +92,22 @@ export default function InventoryPage() {
   }
 
   const handleFormSubmit = (data: Partial<InventoryItem>) => {
+    const staffMember = session?.user?.name || session?.user?.email || "Unknown User";
     if (editingItem) {
-      updateItemMutation.mutate({ originalItem: editingItem, updates: data }, {
+      updateItemMutation.mutate({ originalItem: editingItem, updates: data, staffMember }, {
         onSuccess: handleCloseModals,
       })
     } else {
-      createItemMutation.mutate({ ...data, Product_ID: `P${Date.now()}` }, {
+      createItemMutation.mutate({ item: { ...data, Product_ID: `P${Date.now()}` }, staffMember }, {
         onSuccess: handleCloseModals,
       })
     }
   }
 
   const handleDeleteConfirm = () => {
+    const staffMember = session?.user?.name || session?.user?.email || "Unknown User";
     if (itemToDelete) {
-      deleteItemMutation.mutate({ item: itemToDelete, reason: deleteReason, notes: deleteNotes }, {
+      deleteItemMutation.mutate({ item: itemToDelete, reason: deleteReason, notes: deleteNotes, staffMember }, {
         onSuccess: handleCloseModals,
       })
     }
@@ -114,8 +118,9 @@ export default function InventoryPage() {
     reason: 'Record Usage' | 'Receive Stock';
     notes: string;
   }) => {
+    const staffMember = session?.user?.name || session?.user?.email || "Unknown User";
     if (itemToAdjust) {
-      adjustStockMutation.mutate({ item: itemToAdjust, ...data }, {
+      adjustStockMutation.mutate({ item: itemToAdjust, ...data, staffMember }, {
         onSuccess: handleCloseModals,
       });
     }

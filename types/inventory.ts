@@ -8,7 +8,9 @@ export interface InventoryItem {
   Max_Level: number
   Storage_Location: string
   Primary_Vendor: string
+  vendors: string[]
   Cost_Per_Unit: string
+  Purchase_Cost: string
   Last_Updated: string
   Status: 'GOOD' | 'MEDIUM' | 'LOW' | 'OUT_OF_STOCK'
   Days_Supply?: number

@@ -18,6 +18,7 @@ interface InventoryFormValues {
   Storage_Location: string;
   Primary_Vendor?: string;
   Cost_Per_Unit: string;
+  Vendors: string;
 }
 
 const schema: yup.ObjectSchema<InventoryFormValues> = yup.object().shape({
@@ -30,6 +31,7 @@ const schema: yup.ObjectSchema<InventoryFormValues> = yup.object().shape({
   Storage_Location: yup.string().required('Storage location is required'),
   Primary_Vendor: yup.string().optional(),
   Cost_Per_Unit: yup.string().required('Cost per unit is required'),
+  Vendors: yup.string().required('Vendors are required'),
 })
 
 interface InventoryFormProps {
@@ -61,6 +63,7 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isSubmitting, i
       Storage_Location: initialData?.Storage_Location || '',
       Primary_Vendor: initialData?.Primary_Vendor,
       Cost_Per_Unit: initialData?.Cost_Per_Unit || '',
+      Vendors: initialData?.vendors ? initialData.vendors.join(', ') : (initialData?.Primary_Vendor || ''),
     },
   })
 
@@ -78,10 +81,18 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isSubmitting, i
     Storage_Location: { label: 'Storage Location', type: 'text' },
     Primary_Vendor: { label: 'Primary Vendor', type: 'text' },
     Cost_Per_Unit: { label: 'Cost Per Unit', type: 'text' },
+    Vendors: { label: 'Vendors (comma-separated)', type: 'text' },
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-2">
+    <form onSubmit={handleSubmit((data) => {
+      const vendorsArr = data.Vendors.split(',').map(v => v.trim()).filter(Boolean);
+      onSubmit({
+        ...data,
+        vendors: vendorsArr,
+        Primary_Vendor: vendorsArr[0] || '',
+      } as any);
+    })} className="space-y-6 p-2">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {Object.keys(fields).map((key) => (
           <div key={key}>

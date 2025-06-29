@@ -1,6 +1,8 @@
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 
+const allowedEmails = (process.env.ALLOWED_EMAILS || '').split(',').map(e => e.trim());
+
 export const { auth, handlers, signIn, signOut } = NextAuth({
   providers: [
     GoogleProvider({
@@ -13,6 +15,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     error: "/login",
   },
   callbacks: {
+    async signIn({ user }) {
+      if (user.email && allowedEmails.includes(user.email)) {
+        return true;
+      }
+      return false;
+    },
     async session({ session }) {
       return session
     },
